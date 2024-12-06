@@ -22,7 +22,7 @@ public class Tests(WebApplicationFactory<Program> factory) : IClassFixture<WebAp
 
     [Theory]
     [InlineData(0, 0)]
-    [InlineData(180, Math.PI)]
+    [InlineData(181, Math.PI)]
     [InlineData(360, 2 * Math.PI)]
     public async Task ConvertDegreesToRadians_ReturnsExpectedResult(double degrees, double expectedRadians)
     {
