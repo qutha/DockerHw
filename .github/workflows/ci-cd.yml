@@ -1,0 +1,76 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Сборка проекта
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet build --configuration Release
+
+  # Запуск тестов
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 9.0
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test --logger "trx;LogFileName=test_results.trx"
+
+      - name: Publish test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: TestResults
+          path: "**/*.trx"
+
+  # Деплой на DockerHub
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/dockerhwapi:latest .
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/dockerhwapi:latest
